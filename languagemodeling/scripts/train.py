@@ -12,7 +12,8 @@ Options:
 from docopt import docopt
 import pickle
 
-from nltk.corpus import gutenberg
+# Importo mi corpus reader personalizado
+from corpus.twitter_corpus_reader import TwitterCorpusReader
 
 from languagemodeling.ngram import NGram
 
@@ -21,7 +22,8 @@ if __name__ == '__main__':
     opts = docopt(__doc__)
 
     # load the data
-    sents = gutenberg.sents('austen-emma.txt')
+    corpus = TwitterCorpusReader('../../corpus/', 'Corpus_NiUnaMenos.txt')
+    sents = corpus.sents()
 
     # train the model
     n = int(opts['-n'])
