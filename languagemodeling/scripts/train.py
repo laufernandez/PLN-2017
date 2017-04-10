@@ -22,7 +22,7 @@ if __name__ == '__main__':
     opts = docopt(__doc__)
 
     # load the data
-    corpus = TwitterCorpusReader('../../corpus/', 'Corpus_NiUnaMenos.txt')
+    corpus = TwitterCorpusReader('../../corpus/', 'NiUnaMenos.txt')
     sents = corpus.sents()
 
     # train the model
