@@ -23,19 +23,9 @@ class NGram(object):
                 ngram = tuple(sent[i: i + n])
                 # Incremento la frecuencia del n-grama.
                 counts[ngram] += 1
-                # Con n = 1 cargaria la tupla vacia con N (Numero total de tokens).
-                if n != 1:
-                    # Incrementa frecuencia del (n-1)-grama.
-                    counts[ngram[:-1]] += 1
+                # Incrementa frecuencia del (n-1)-grama.
+                counts[ngram[:-1]] += 1
 
-#    def prob(self, token, prev_tokens=None):
-#        n = self.n
-#        if not prev_tokens:
-#            prev_tokens = []
-#        assert len(prev_tokens) == n - 1
-#
-#        tokens = prev_tokens + [token]
-#        return float(self.counts[tuple(tokens)]) / self.counts[tuple(prev_tokens)]
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -43,8 +33,6 @@ class NGram(object):
         tokens -- the n-gram or (n-1)-gram tuple.
         """
         n = self.n
-        # La tupla nunca puede ser vacía.
-        assert len(tokens) != 0
         # Chequeo n-uplas o (n-1)-uplas.
         assert len(tokens) == n or len(tokens) == n - 1
         # Frecuencia asociada a la tupla que pasa como argumento.
@@ -58,34 +46,25 @@ class NGram(object):
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
         n = self.n
-        # El primer argumento es un unico token.
-        ##assert len(token) == 1
-        # Numero de apariciones del token.
-        token_prob = self.count(token)
-        # Caso unigramas.
-        if n == 1:
-
-            return token_prob
-        # Casos n > 1.
-        conditional_prob = 0
-        # Chequeo largo de tupla de tokens previos.
+        # De Tokens a Tuplas.
+        token = tuple([token])
+        if n == 1: # Caso unigrama (NoneType).
+            prev_tokens = []
+        prev_tokens = tuple(prev_tokens)
+        # Chequeo longitudes.
+        assert len(token) == 1
         assert len(prev_tokens) == n - 1
         # Tupla que forma el n-grama.
-        # Probabilidades.
-        ngram_prob = float(self.count(ngram)) # P(Interseccion de los eventos).
-        prev_tokens_prob = float(self.count(prev_tokens)) # P(Eventos condicionantes).
-        # Regla de la probabilid condicional.
-        conditional_prob =  ngram_prob / prev_tokens_prob 
+        ngram = prev_tokens + token
+        # Probabilidades y regla de la probabilidad condicional.
+        ngram_prob = float(self.count(ngram))
+        prev_tokens_prob = float(self.count(prev_tokens))
+        try:
+            conditional_prob =  ngram_prob / prev_tokens_prob 
+        except ZeroDivisionError:
+            conditional_prob = 0
 
         return conditional_prob
-
-
-        # TENER EN CUENTA EL CASO PROB = 0???
-        # OCURRE REALMENTE ALGUNA VEZ.???
-        #if (prev_tokens_prob == 0):
-        #try: zerodivisionerror
-
-            #return conditional_proB
 
 
     def sent_prob(self, sent):
@@ -101,9 +80,8 @@ class NGram(object):
         prob = 1
         # Recorro cada n-grama en busca de sus probabilidades.
         for i in range(len(sent) - n + 1):
-            # Formo las tuplas argumentos.
-            prev_tokens = tuple(sent[i: i + n - 1]) # (n-1)grama de tk previos.
-            token = tuple(sent[i+n]) # Token i.
+            prev_tokens = sent[i: i + n - 1] # (n-1)grama de Tk previos.
+            token = sent[i + n - 1] # Token i.
             # Markov Assumption
             prob *= self.cond_prob(token, prev_tokens)
         
@@ -122,13 +100,15 @@ class NGram(object):
 
         prob = 0
         for i in range(len(sent) - n + 1):
-            prev_tokens = tuple(sent[i: i + n - 1])
-            token = tuple(sent[i+n])
+            prev_tokens = sent[i: i + n - 1]
+            token = sent[i + n - 1]
             # Propiedad del logaritmo + Markov Assumption 
             try:
                 # Log base 2
                 prob += log(self.cond_prob(token, prev_tokens),2)
             # Cuando prob es 0.
-            except ZeroDivisionError:
-                prob -= float('inf')
+            except ValueError:
+                prob = float('-inf')
+
+        return prob
 
