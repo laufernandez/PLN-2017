@@ -15,9 +15,8 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
 
         for sent in sents:
-            # Agrego n-1 delimitadores de inicio y uno de fin de sentencia
-            sent[0:0] = (n-1) * ['<s>']
-            sent.append('</s>')
+            # Delimitadores de inicio y fin de sentencia.
+            self.delimiters(sent, n)
             # Creo el diccionario de n-gramas y (n-1)-gramas y sus frecuencias.
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
@@ -73,9 +72,8 @@ class NGram(object):
         sent -- the sentence as a list of tokens.
         """
         n = self.n
-        # Delimitadores de inicio y fin.
-        sent[0:0] = (n-1) * ['<s>']
-        sent.append('</s>')
+        # Delimitadores.
+        self.delimiters(sent, n)
 
         prob = 1
         # Recorro cada n-grama en busca de sus probabilidades.
@@ -94,9 +92,8 @@ class NGram(object):
         sent -- the sentence as a list of tokens.
         """
         n = self.n
-        # Delimitadores de inicio y fin.
-        sent[0:0] = (n-1) * ['<s>']
-        sent.append('</s>')
+        # Delimitadores.
+        self.delimiters(sent, n)
 
         prob = 0
         for i in range(len(sent) - n + 1):
@@ -112,3 +109,13 @@ class NGram(object):
 
         return prob
 
+
+    def delimiters(self, sent, n):
+        """ Add delimiters to a sentence.
+
+        <s> -- beg delimiters.
+        </s> -- end delimiters.
+        """
+        # Agrego n-1 delimitadores de inicio y uno de fin de sentencia
+        sent[0:0] = (n-1) * ['<s>']
+        sent.append('</s>')
