@@ -25,10 +25,9 @@ class NGram(object):
                 # Incrementa frecuencia del (n-1)-grama.
                 counts[ngram[:-1]] += 1
 
-
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
- 
+
         tokens -- the n-gram or (n-1)-gram tuple.
         """
         n = self.n
@@ -37,7 +36,6 @@ class NGram(object):
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
 
- 
     def cond_prob(self, token, prev_tokens=None):
         """Conditional probability of a token.
 
@@ -47,10 +45,10 @@ class NGram(object):
         n = self.n
         # De Tokens a Tuplas.
         token = tuple([token])
-        if not prev_tokens: # Caso unigrama (NoneType).
+        if not prev_tokens:  # Caso unigrama (NoneType).
             assert n == 1
             prev_tokens = []
-        assert len(prev_tokens) ==  n - 1
+        assert len(prev_tokens) == n - 1
         prev_tokens = tuple(prev_tokens)
         # Tupla que forma el n-grama.
         ngram = prev_tokens + token
@@ -58,17 +56,16 @@ class NGram(object):
         ngram_prob = float(self.count(ngram))
         prev_tokens_prob = float(self.count(prev_tokens))
         try:
-            conditional_prob =  ngram_prob / prev_tokens_prob 
+            conditional_prob = ngram_prob / prev_tokens_prob
         except ZeroDivisionError:
             # Cuando prev_tokens_prob es 0.
             conditional_prob = 0
 
         return conditional_prob
 
-
     def sent_prob(self, sent):
         """Probability of a sentence. Warning: subject to underflow problems.
- 
+
         sent -- the sentence as a list of tokens.
         """
         n = self.n
@@ -78,17 +75,16 @@ class NGram(object):
         prob = 1
         # Recorro cada n-grama en busca de sus probabilidades.
         for i in range(len(sent) - n + 1):
-            prev_tokens = sent[i: i + n - 1] # (n-1)grama de Tk previos.
-            token = sent[i + n - 1] # Token i.
+            prev_tokens = sent[i: i + n - 1]  # (n-1)grama de Tk previos.
+            token = sent[i + n - 1]  # Token i.
             # Markov Assumption
             prob *= self.cond_prob(token, prev_tokens)
-        
-        return prob
 
+        return prob
 
     def sent_log_prob(self, sent):
         """Log-probability of a sentence.
- 
+
         sent -- the sentence as a list of tokens.
         """
         n = self.n
@@ -99,16 +95,15 @@ class NGram(object):
         for i in range(len(sent) - n + 1):
             prev_tokens = sent[i: i + n - 1]
             token = sent[i + n - 1]
-            # Propiedad del logaritmo + Markov Assumption 
+            # Propiedad del logaritmo + Markov Assumption
             try:
                 # Log base 2
-                prob += log(self.cond_prob(token, prev_tokens),2)
+                prob += log(self.cond_prob(token, prev_tokens), 2)
             # Cuando cond_prob es 0.
             except ValueError:
                 prob = float('-inf')
 
         return prob
-
 
     def delimiters(self, sent, n):
         """ Add delimiters to a sentence.
@@ -121,19 +116,18 @@ class NGram(object):
         sent.append('</s>')
 
 
-
 class NGramGenerator(object):
- 
+
     def __init__(self, model):
         """
         model -- n-gram model.
         """
- 
+
     def generate_sent(self):
         """Randomly generate a sentence."""
- 
+
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
- 
+
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
