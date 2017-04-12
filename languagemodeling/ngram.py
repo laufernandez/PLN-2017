@@ -33,7 +33,7 @@ class NGram(object):
         """
         n = self.n
         # Chequeo n-uplas o (n-1)-uplas.
-        assert len(tokens) == n or len(tokens) == n - 1
+        assert len(tokens) in [n, n - 1]
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
 
@@ -47,12 +47,11 @@ class NGram(object):
         n = self.n
         # De Tokens a Tuplas.
         token = tuple([token])
-        if n == 1: # Caso unigrama (NoneType).
+        if not prev_tokens: # Caso unigrama (NoneType).
+            assert n == 1
             prev_tokens = []
+        assert len(prev_tokens) ==  n - 1
         prev_tokens = tuple(prev_tokens)
-        # Chequeo longitudes.
-        assert len(token) == 1
-        assert len(prev_tokens) == n - 1
         # Tupla que forma el n-grama.
         ngram = prev_tokens + token
         # Probabilidades y regla de la probabilidad condicional.
@@ -61,6 +60,7 @@ class NGram(object):
         try:
             conditional_prob =  ngram_prob / prev_tokens_prob 
         except ZeroDivisionError:
+            # Cuando prev_tokens_prob es 0.
             conditional_prob = 0
 
         return conditional_prob
@@ -103,7 +103,7 @@ class NGram(object):
             try:
                 # Log base 2
                 prob += log(self.cond_prob(token, prev_tokens),2)
-            # Cuando prob es 0.
+            # Cuando cond_prob es 0.
             except ValueError:
                 prob = float('-inf')
 
@@ -119,3 +119,21 @@ class NGram(object):
         # Agrego n-1 delimitadores de inicio y uno de fin de sentencia
         sent[0:0] = (n-1) * ['<s>']
         sent.append('</s>')
+
+
+
+class NGramGenerator(object):
+ 
+    def __init__(self, model):
+        """
+        model -- n-gram model.
+        """
+ 
+    def generate_sent(self):
+        """Randomly generate a sentence."""
+ 
+    def generate_token(self, prev_tokens=None):
+        """Randomly generate a token, given prev_tokens.
+ 
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
