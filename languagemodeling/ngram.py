@@ -6,6 +6,7 @@ from random import random
 BEGIN = '<s>'
 END = '</s>'
 
+
 class NGram(object):
 
     def __init__(self, n, sents):
@@ -130,7 +131,7 @@ class NGramGenerator(object):
 
         # Diccionario de probabilidades de la forma:
         # {(prev_tks1): {(tk1):tk1_prob,...,(tkn):tkn_prob},...,(prev_tksm)...}
-        self.probs = defaultdict(lambda : defaultdict(int))  # Dict de Dicts.
+        self.probs = defaultdict(lambda: defaultdict(int))  # Dict de Dicts.
 
         # Diccionario de probabilidades ordenadas de la forma:
         # {(prev_tks1): [(tk1, tk1_prob),...,(tkm, tkm_ptob)],..,(prev_tksm)..}
@@ -163,14 +164,13 @@ class NGramGenerator(object):
         # Inicializo probabilidades ordenadas de mayor a menor.
         for prev_tk in self.probs:
             self.sorted_probs[prev_tk] = sorted(self.probs[prev_tk].items(),
-                                        key = lambda x: (-x[1], x[0]))
-
+                                                key=lambda x: (-x[1], x[0]))
 
     def generate_sent(self):
         """Randomly generate a sentence."""
         n = self.n
         sent = []
-        # Para mi primer token, (para n > 1) los previos son los delimitares <s>.
+        # Para mi primer token, (n > 1) los previos son los delimitadores <s>.
         prev_tokens = tuple((n-1) * [BEGIN])
         # Unigrama no tiene delimitadores previos.
         if n == 1:
