@@ -1,7 +1,10 @@
 # https://docs.python.org/3/library/collections.html
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from math import log
+from random import random
 
+BEGIN = '<s>'
+END = '</s>'
 
 class NGram(object):
 
@@ -108,12 +111,12 @@ class NGram(object):
     def _delimiters(self, sent, n):
         """ Add delimiters to a sentence.
 
-        <s> -- beg delimiters.
-        </s> -- end delimiters.
+        BEGIN = <s> -- beg delimiters.
+        END = </s> -- end delimiters.
         """
         # Agrego n-1 delimitadores de inicio y uno de fin de sentencia
-        sent[0:0] = (n-1) * ['<s>']
-        sent.append('</s>')
+        sent[0:0] = (n-1) * [BEGIN]
+        sent.append(END)
 
 
 class NGramGenerator(object):
@@ -124,25 +127,87 @@ class NGramGenerator(object):
         """
         self.model = model
         n = self.n = model.n
+
         # Diccionario de probabilidades de la forma:
         # {(prev_tks1): {(tk1):tk1_prob,...,(tkn):tkn_prob},...,(prev_tksm)...}
-        probs = defaultdict(lambda : defaultdict(int))  # Dict de Dicts.
+        self.probs = defaultdict(lambda : defaultdict(int))  # Dict de Dicts.
+
+        # Diccionario de probabilidades ordenadas de la forma:
+        # {(prev_tks1): [(tk1, tk1_prob),...,(tkm, tkm_ptob)],..,(prev_tksm)..}
+        self.sorted_probs = defaultdict(OrderedDict)
+
         # Diccionario counts filtrado por claves de largo n.
         _ncounts = {ngram: count for ngram, count in
                     self.model.counts.items() if len(ngram) == n}
-        # Separo en tokens y prev_tokens.
+
+        # Inicializo el diccionario de probabilidades.
         for ngram in _ncounts:
             prev_tokens = ngram[:-1]  # Tupla de tokens previos.
             token = ngram[- 1]  # String que representa al token.
-            # Probabilidad condicional de ese token dado los previos.
-            cond_prob_token = cond_prob(token, prev_tokens)
-            probs[prev_tokens][token] = cond_prob_token
+            # Probabilidad condicional del token.
+            cond_prob_token = self.model.cond_prob(token, prev_tokens)
+            self.probs[prev_tokens][token] = cond_prob_token
+
+        # Diccionario counts filtrado por claves de largo n.
+        _ncounts = {ngram: count for ngram, count in
+                    self.model.counts.items() if len(ngram) == n}
+
+        # Inicializo el diccionario de probabilidades.
+        for ngram in _ncounts:
+            prev_tokens = ngram[:-1]  # Tupla de tokens previos.
+            token = ngram[- 1]  # String que representa al token.
+            # Probabilidad condicional del token.
+            cond_prob_token = self.model.cond_prob(token, prev_tokens)
+            self.probs[prev_tokens][token] = cond_prob_token
+
+        # Inicializo probabilidades ordenadas de mayor a menor.
+        for prev_tk in self.probs:
+            self.sorted_probs[prev_tk] = sorted(self.probs[prev_tk].items(),
+                                        key = lambda x: (-x[1], x[0]))
+
 
     def generate_sent(self):
         """Randomly generate a sentence."""
+        n = self.n
+        sent = []
+        # Para mi primer token, (para n > 1) los previos son los delimitares <s>.
+        prev_tokens = tuple((n-1) * [BEGIN])
+        # Unigrama no tiene delimitadores previos.
+        if n == 1:
+            prev_tokens = ()
+        # Agrega tokens hasta llegar al delimitador de fin.
+        while(True):
+            token = self.generate_token(prev_tokens)
+            if token == '</s>':
+                break
+            sent.append(token)
+            # Genera token a partir de (n-1) tokens previos.
+            prev_tokens = prev_tokens[1:] + tuple([token])
+            if n == 1:
+                prev_tokens = ()
+
+        return sent
 
     def generate_token(self, prev_tokens=None):
         """Randomly generate a token, given prev_tokens.
 
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
+        n = self.n
+        # Unigrama
+        if not prev_tokens:
+            assert n == 1
+            prev_tokens = ()
+
+        # Random con distribucion pseudo-uniforme (0,1).
+        rand = random()
+        # Distribucion acumulada a partir de las probabiliades de cada token.
+        cum_distribution = 0
+
+        # Algoritmo de sampleo para una multinomial.
+        for token, token_prob in self.sorted_probs[prev_tokens]:
+            cum_distribution += token_prob
+            # Si el random cae adentro de la acumulada, elijo ese token.
+            if rand <= cum_distribution:
+                return token
+                break
