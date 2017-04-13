@@ -16,7 +16,7 @@ class NGram(object):
 
         for sent in sents:
             # Delimitadores de inicio y fin de sentencia.
-            self.delimiters(sent, n)
+            self._delimiters(sent, n)
             # Creo el diccionario de n-gramas y (n-1)-gramas y sus frecuencias.
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
@@ -70,7 +70,7 @@ class NGram(object):
         """
         n = self.n
         # Delimitadores.
-        self.delimiters(sent, n)
+        self._delimiters(sent, n)
 
         prob = 1
         # Recorro cada n-grama en busca de sus probabilidades.
@@ -89,7 +89,7 @@ class NGram(object):
         """
         n = self.n
         # Delimitadores.
-        self.delimiters(sent, n)
+        self._delimiters(sent, n)
 
         prob = 0
         for i in range(len(sent) - n + 1):
@@ -105,7 +105,7 @@ class NGram(object):
 
         return prob
 
-    def delimiters(self, sent, n):
+    def _delimiters(self, sent, n):
         """ Add delimiters to a sentence.
 
         <s> -- beg delimiters.
@@ -122,6 +122,21 @@ class NGramGenerator(object):
         """
         model -- n-gram model.
         """
+        self.model = model
+        n = self.n = model.n
+        # Diccionario de probabilidades de la forma:
+        # {(prev_tks1): {(tk1):tk1_prob,...,(tkn):tkn_prob},...,(prev_tksm)...}
+        probs = defaultdict(lambda : defaultdict(int))  # Dict de Dicts.
+        # Diccionario counts filtrado por claves de largo n.
+        _ncounts = {ngram: count for ngram, count in
+                    self.model.counts.items() if len(ngram) == n}
+        # Separo en tokens y prev_tokens.
+        for ngram in _ncounts:
+            prev_tokens = ngram[:-1]  # Tupla de tokens previos.
+            token = ngram[- 1]  # String que representa al token.
+            # Probabilidad condicional de ese token dado los previos.
+            cond_prob_token = cond_prob(token, prev_tokens)
+            probs[prev_tokens][token] = cond_prob_token
 
     def generate_sent(self):
         """Randomly generate a sentence."""
