@@ -17,7 +17,7 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.v = 0 # Tamano del vocabulario.
+        self.v = 0  # Tamano del vocabulario.
 
         for sent in sents:
             # Delimitadores de inicio y fin de sentencia.
@@ -39,7 +39,6 @@ class NGram(object):
 
         # Necesario para el ejercicio de suavizado Add-One.
         self.v = len(_vocabulary)
-
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -226,7 +225,7 @@ class NGramGenerator(object):
 
 
 class AddOneNGram(NGram):
- 
+
     def V(self):
         """Size of the vocabulary.
         """
