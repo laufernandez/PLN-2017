@@ -1,6 +1,7 @@
 from nltk.corpus import PlaintextCorpusReader
 from nltk.tokenize import RegexpTokenizer
 
+
 class TwitterCorpusReader(PlaintextCorpusReader):
     """
     Corpus Reader personalizado para el tokenizado de tweets.
@@ -22,7 +23,7 @@ class TwitterCorpusReader(PlaintextCorpusReader):
                     | (?:[Ss]r\.|[Ss]ra\.)      # Sr. Sra. sr. sra.
                     | (?:[Dd]r\.|[Dd]ra\.)      # Dr. Dra. dr. dra.
                     | \.\.\.                    # Puntos suspensivos.
-                    | \@\w+(?:-\w+)*            # Nombres de usuario de Twitter.
+                    | \@\w+(?:-\w+)*            # Usuarios de Twitter.
                     | \d+(?:[\.\,]\d+)%         # Porcentajes
                     | \#?\w+(?:-\w+)*           # Palabras/Hashtags.
                     | \$?\d+(?:[\.\,]\d+)?      # Numeros decimales, precios.
@@ -31,5 +32,5 @@ class TwitterCorpusReader(PlaintextCorpusReader):
 
         self._tokenizer = RegexpTokenizer(self._pattern)
 
-        PlaintextCorpusReader.__init__(self, root, fileids, word_tokenizer=self._tokenizer)
-
+        PlaintextCorpusReader.__init__(self, root, fileids,
+                                       word_tokenizer=self._tokenizer)

@@ -1,6 +1,5 @@
 import json
 import argparse
-import re
 
 
 def print_streaming_tweets(streaming_path):
@@ -15,7 +14,8 @@ def print_streaming_tweets(streaming_path):
             text = tweet['text']
             if text.find("RT ") == -1:
                 # Printeo y desde consola los mando a un .txt nuevo
-                print (text)
+                print(text)
+
 
 parser = argparse.ArgumentParser(description='Streaming Tweets')
 parser.add_argument('-f', '--file', dest='file_path',

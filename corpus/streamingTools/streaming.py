@@ -1,6 +1,5 @@
 import sys
 import time
-import math
 import argparse
 from datetime import datetime
 
@@ -68,7 +67,6 @@ class MyStreamListener(StreamListener):
         Called when a non-200 status code is returned
         """
         print("Error code: {0}".format(status_code))
-        print("For more information on the error code: https://dev.twitter.com/overview/api/response-codes")
         return False
 
 

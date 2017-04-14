@@ -121,7 +121,7 @@ class NGram(object):
         return prob
 
     def _delimiters(self, sent, n):
-        """ Add delimiters to a sentence.
+        """Add delimiters to a sentence.
 
         BEGIN = <s> -- beg delimiters.
         END = </s> -- end delimiters.
@@ -129,6 +129,53 @@ class NGram(object):
         # Agrego n-1 delimitadores de inicio y uno de fin de sentencia
         sent[0:0] = (n-1) * [BEGIN]
         sent.append(END)
+
+    def perplexity(self, sents):
+        """Perplexity of a language model.
+
+        sents -- abstraction of a 'long sentence' formed by the sents in the
+        test data corpus.
+        """
+        # Obtengo la perplexity a partir de su cross_entrophy
+        perplexity = pow(2, self.cross_entrophy)
+
+        return perplexity
+
+    def cross_entrophy(self, sents):
+        """Aproximated Cross-entrophy of a language model.
+
+        sents -- abstraction of a 'long sentence'.
+        """
+        log_prob = self.log_probability(sents)
+        # La entropia cruzada entre la distribucion de un modelo y la
+        # distribucion de palabras en un corpus dado se puede aproximar
+        # como la (-)log_prob de una secuencia larga normalizada por
+        # el total de palabras del corpus.
+        c_entrophy = float(-1 / self.m) * log_prob
+
+        return c_entrophy
+
+    def log_probability(self, sents):
+        """Log-probability of a very long sentence. (n-gram method).
+
+        sents -- abstraction of a 'long sentence'.
+        """
+        log_prob = 0
+        long_sent = []
+        self.m = 0  # Total de palabras del test corpus.
+        for sent in sents:
+            # Por el metodo de Markov para un n-grama las probabilidades
+            # de cada palabra son condicionadas por las n-1 anteriores.
+            # Acumulo las palabras en una nueva sentencia larga, logrando
+            # una mejor aproximacion de la log_prob total que sumando los
+            # valores de cada sentencia por separado.
+            for word in sent:
+                self.m += 1
+                long_sent.append(word)
+        # Calculo la log_prob de la secuencia larga.
+        log_prob += self.sent_log_prob(long_sent)
+
+        return log_prob
 
 
 class NGramGenerator(object):
@@ -147,18 +194,6 @@ class NGramGenerator(object):
         # Diccionario de probabilidades ordenadas de la forma:
         # {(prev_tks1): [(tk1, tk1_prob),...,(tkm, tkm_ptob)],..,(prev_tksm)..}
         self.sorted_probs = defaultdict(OrderedDict)
-
-        # Diccionario counts filtrado por claves de largo n.
-        _ncounts = {ngram: count for ngram, count in
-                    self.model.counts.items() if len(ngram) == n}
-
-        # Inicializo el diccionario de probabilidades.
-        for ngram in _ncounts:
-            prev_tokens = ngram[:-1]  # Tupla de tokens previos.
-            token = ngram[- 1]  # String que representa al token.
-            # Probabilidad condicional del token.
-            cond_prob_token = self.model.cond_prob(token, prev_tokens)
-            self.probs[prev_tokens][token] = cond_prob_token
 
         # Diccionario counts filtrado por claves de largo n.
         _ncounts = {ngram: count for ngram, count in
@@ -221,10 +256,41 @@ class NGramGenerator(object):
             # Si el random cae adentro de la acumulada, elijo ese token.
             if rand <= cum_distribution:
                 return token
-                break
+        raise(AssertionError('Cumulative Distribution < Rand'))
 
 
 class AddOneNGram(NGram):
+
+    def __init__(self, n, sents):
+        """
+        n -- order of the model.
+        sents -- list of sentences, each one being a list of tokens.
+        """
+        assert n > 0
+        self.n = n
+        self.counts = counts = defaultdict(int)
+        self.v = 0  # Tamano del vocabulario.
+
+        # Set de wordtypes (incluye </s>).
+        _vocabulary = set()
+
+        for sent in sents:
+            # Delimitadores de inicio y fin de sentencia.
+            self._delimiters(sent, n)
+            # Creo el diccionario de n-gramas y (n-1)-gramas y sus frecuencias.
+            for i in range(len(sent) - n + 1):
+                ngram = tuple(sent[i: i + n])
+                # Agrego los wordtypes al set.
+                for token in ngram:
+                    if token != BEGIN:
+                        _vocabulary.add(token)
+                # Incremento la frecuencia del n-grama.
+                counts[ngram] += 1
+                # Incrementa frecuencia del (n-1)-grama.
+                counts[ngram[:-1]] += 1
+
+        # Necesario para el ejercicio de suavizado Add-One.
+        self.v = len(_vocabulary)  # Cantidad de wordtypes.
 
     def V(self):
         """Size of the vocabulary.
@@ -239,6 +305,7 @@ class AddOneNGram(NGram):
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
         """
         n = self.n
+        v = self.V()
         token = tuple([token])
         if not prev_tokens:
             assert n == 1
@@ -248,10 +315,8 @@ class AddOneNGram(NGram):
         ngram = prev_tokens + token
         # Suavizado Add-One.
         ngram_prob = float(self.count(ngram) + 1)
-        prev_tokens_prob = float(self.count(prev_tokens) + self.V())
-        try:
-            conditional_prob = ngram_prob / prev_tokens_prob
-        except ZeroDivisionError:
-            conditional_prob = 0
+        prev_tokens_prob = float(self.count(prev_tokens) + v)
+        # No hay ZeroDivisionError
+        conditional_prob = ngram_prob / prev_tokens_prob
 
         return conditional_prob

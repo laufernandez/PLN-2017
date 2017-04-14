@@ -39,8 +39,7 @@ if __name__ == '__main__':
         print('Training an Ngram Model')
         model = NGram(n, sents)
     else:
-        print('Incorrect Model. Try Again!')
-        exit()
+        __doc__
     # save it
     filename = opts['-o']
     f = open(filename, 'wb')
