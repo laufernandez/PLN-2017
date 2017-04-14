@@ -17,6 +17,7 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
+        self.v = 0 # Tamano del vocabulario.
 
         for sent in sents:
             # Delimitadores de inicio y fin de sentencia.
@@ -28,6 +29,17 @@ class NGram(object):
                 counts[ngram] += 1
                 # Incrementa frecuencia del (n-1)-grama.
                 counts[ngram[:-1]] += 1
+
+        # Set de wordtypes (incluye </s>).
+        _vocabulary = set()
+        for ngram in counts.keys():
+            for token in ngram:
+                if token != BEGIN:
+                    _vocabulary.add(token)
+
+        # Necesario para el ejercicio de suavizado Add-One.
+        self.v = len(_vocabulary)
+
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
@@ -211,3 +223,36 @@ class NGramGenerator(object):
             if rand <= cum_distribution:
                 return token
                 break
+
+
+class AddOneNGram(NGram):
+ 
+    def V(self):
+        """Size of the vocabulary.
+        """
+        return self.v
+
+    # Redefino la funcion que calcula las probabilidades condicionales.
+    def cond_prob(self, token, prev_tokens=None):
+        """Conditional probability of a token.
+
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+        """
+        n = self.n
+        token = tuple([token])
+        if not prev_tokens:
+            assert n == 1
+            prev_tokens = []
+        assert len(prev_tokens) == n - 1
+        prev_tokens = tuple(prev_tokens)
+        ngram = prev_tokens + token
+        # Suavizado Add-One.
+        ngram_prob = float(self.count(ngram) + 1)
+        prev_tokens_prob = float(self.count(prev_tokens) + self.V())
+        try:
+            conditional_prob = ngram_prob / prev_tokens_prob
+        except ZeroDivisionError:
+            conditional_prob = 0
+
+        return conditional_prob
