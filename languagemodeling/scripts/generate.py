@@ -10,6 +10,7 @@ Options:
   -n <n>        Number of sentences to generate.
   -h --help     Show this screen.
  """
+
 from docopt import docopt
 import pickle
 

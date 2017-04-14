@@ -19,26 +19,26 @@ class NGram(object):
         self.counts = counts = defaultdict(int)
         self.v = 0  # Tamano del vocabulario.
 
+        # Set de wordtypes (incluye </s>).
+        _vocabulary = set()
+
         for sent in sents:
             # Delimitadores de inicio y fin de sentencia.
             self._delimiters(sent, n)
             # Creo el diccionario de n-gramas y (n-1)-gramas y sus frecuencias.
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
+                # Agrego los wordtypes al set.
+                for token in ngram:
+                    if token != BEGIN:
+                        _vocabulary.add(token)
                 # Incremento la frecuencia del n-grama.
                 counts[ngram] += 1
                 # Incrementa frecuencia del (n-1)-grama.
                 counts[ngram[:-1]] += 1
 
-        # Set de wordtypes (incluye </s>).
-        _vocabulary = set()
-        for ngram in counts.keys():
-            for token in ngram:
-                if token != BEGIN:
-                    _vocabulary.add(token)
-
         # Necesario para el ejercicio de suavizado Add-One.
-        self.v = len(_vocabulary)
+        self.v = len(_vocabulary)  # Cantidad de wordtypes.
 
     def count(self, tokens):
         """Count for an n-gram or (n-1)-gram.
