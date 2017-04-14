@@ -26,8 +26,10 @@ if __name__ == '__main__':
     # Creo el ngrama.
     ngram = NGramGenerator(model)
     print("Caso " + str(ngram.n) + "-grama")
-    # Imprimo sentencia por sentencia
+    # Imprimo sentencia por sentencia.
     for i in range(n):
         print("Sentencia " + str(i + 1) + (":"))
         sent = ' '.join(ngram.generate_sent())
         print(sent)
+    # Cierro archivo.
+    f.close()
