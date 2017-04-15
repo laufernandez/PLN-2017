@@ -137,7 +137,7 @@ class NGram(object):
         test data corpus.
         """
         # Obtengo la perplexity a partir de su cross_entrophy
-        perplexity = pow(2, self.cross_entrophy)
+        perplexity = pow(2, self.cross_entrophy(sents))
 
         return perplexity
 
@@ -224,7 +224,7 @@ class NGramGenerator(object):
         # Agrega tokens hasta llegar al delimitador de fin.
         while(True):
             token = self.generate_token(prev_tokens)
-            if token == '</s>':
+            if token == END:
                 break
             sent.append(token)
             # Genera token a partir de (n-1) tokens previos.

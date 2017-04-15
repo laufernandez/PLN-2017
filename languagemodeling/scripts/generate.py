@@ -27,10 +27,10 @@ if __name__ == '__main__':
     if type(model) != AddOneNGram:
         # Creo el ngrama.
         ngram = NGramGenerator(model)
-        print("Caso " + str(ngram.n) + "-grama")
+        print("Case " + str(ngram.n) + "-grama")
         # Imprimo sentencia por sentencia.
         for i in range(n):
-            print("Sentencia " + str(i + 1) + (":"))
+            print("Sentence " + str(i + 1) + (":"))
             sent = ' '.join(ngram.generate_sent())
             print(sent)
     # Para el caso de un modelo AddOneNGram, el metodo de generacion
