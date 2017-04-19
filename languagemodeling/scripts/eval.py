@@ -29,6 +29,6 @@ if __name__ == '__main__':
     print("Evaluating")
     print("."*50)
     print("Perplexity " + str(model.perplexity(long_sent)))
-    print("Cross-Entrophy " + str(model.cross_entrophy(long_sent)))
+    print("Cross-Entropy " + str(model.cross_entropy(long_sent)))
     # Cierro archivo.
     f.close()

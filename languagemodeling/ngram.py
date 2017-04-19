@@ -136,13 +136,13 @@ class NGram(object):
         sents -- abstraction of a 'long sentence' formed by the sents in the
         test data corpus.
         """
-        # Obtengo la perplexity a partir de su cross_entrophy
-        perplexity = pow(2, self.cross_entrophy(sents))
+        # Obtengo la perplexity a partir de su cross_entropy
+        perplexity = pow(2, self.cross_entropy(sents))
 
         return perplexity
 
-    def cross_entrophy(self, sents):
-        """Aproximated Cross-entrophy of a language model.
+    def cross_entropy(self, sents):
+        """Aproximated Cross-entropy of a language model.
 
         sents -- abstraction of a 'long sentence'.
         """
@@ -151,9 +151,9 @@ class NGram(object):
         # distribucion de palabras en un corpus dado se puede aproximar
         # como la (-)log_prob de una secuencia larga normalizada por
         # el total de palabras del corpus.
-        c_entrophy = float(-1 / self.m) * log_prob
+        c_entropy = float(-1 / self.m) * log_prob
 
-        return c_entrophy
+        return c_entropy
 
     def log_probability(self, sents):
         """Log-probability of a very long sentence. (n-gram method).

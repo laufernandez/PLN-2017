@@ -11,8 +11,8 @@ Options:
                   ngram: Unsmoothed n-grams.
                   addone: N-grams with add-one smoothing.
   -o <file>     Output model file.
-  -c <corpus>   Corpus to use [default: tweetspoliticos]:
-                  tweetspoliticos: Argentine Politicians Tweets.
+  -c <corpus>   Corpus to use [default: politicosargentinos]:
+                  politicosargentinos: Argentine Politicians Tweets.
                   niunamenos: Ni Una Menos Tweets (MicaelaGarcia).
   -h --help     Show this screen.
 """
@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # Cargo el corpus segun seleccion del usuario.
     c = opts['-c']
-    if c == 'tweetspoliticos':
+    if c == 'politicosargentinos':
         txt_file = 'PoliticosArgentinos.txt'
     elif c == 'niunamenos':
         txt_file = 'NiUnaMenos.txt'
