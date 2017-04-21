@@ -46,8 +46,6 @@ class NGram(object):
         tokens -- the n-gram or (n-1)-gram tuple.
         """
         n = self.n
-        # Chequeo n-uplas o (n-1)-uplas.
-        assert len(tokens) in [n, n - 1]
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
 
@@ -322,7 +320,7 @@ class AddOneNGram(NGram):
         return conditional_prob
 
 
-class InterpolatedNGram(Ngram):
+class InterpolatedNGram(NGram):
  
     def __init__(self, n, sents, gamma=None, addone=True):
         """
@@ -332,32 +330,37 @@ class InterpolatedNGram(Ngram):
             held-out data).
         addone -- whether to use addone smoothing (default: True).
         """
-
-              """
-        n -- order of the model.
-        sents -- list of sentences, each one being a list of tokens.
-        """
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
         self.v = 0
+        self.addone = addone
+        self.gamma = gamma
 
         # Delimitadores
         for sent in sents:
             self._delimiters(sent, n)
 
-        # Obtengo gamma del argumento o lo calculo.
-        self.gamma = gamma
-        if not gamma:
+        # Held-out data.
+        if not self.gamma:
 
-            # Obtengo el held-out data. (Sumo 1 a index para el caso len < 10).
+            # Sumo 1 a index para el caso en que len(sents) < 10.
             held_out_index = int(floor(len(sents) * 10 / 100) + 1)
             held_out_data = sents[-held_out_index:]  # Las ultimas 10% sents.
             sents = sents[:-held_out_index]  # Primer 90%.
 
-        self.gamma = self.maximize_gamma(held_out_data)
+        if self.addone:
+            # Calcula la longitud del vocabulario.
+            _vocabulary = set()
+            for sent in sents:
+                    for token in sent:
+                        if token != BEGIN:
+                            _vocabulary.add(token)
+            self.v = len(_vocabulary)
 
-        _vocabulary = set()
+        # Calculo gammas o los obtengo de los parametros.
+        if not self.gamma:
+            self.gamma = self.maximize_gamma(held_out_data)
 
         # Incializo los counts.
         for sent in sents:
@@ -365,27 +368,25 @@ class InterpolatedNGram(Ngram):
             # ([n],[(n-1)],...,[(n-i)],...,[1])-gramas.
             for i in range(len(sent) - n + 1):
                 ngram = tuple(sent[i: i + n])
-                # Cuenta la longitud del vocabulario en
-                # este momento solo para "ahorrar" computo.
-                for token in ngram:
-                    if token != BEGIN:
-                        _vocabulary.add(token)
                 # (n-j)-gramas con j = 0,...,n.
                 for j in range(n + 1):
                     counts[ngram[:n - j]] += 1
 
-        self.v = len(_vocabulary)
+            if self.n > 1:  # Para el caso n > 1 agrego los delimitadores END.
+                counts[tuple([END,])] += 1
+
+        print (counts)
 
     def maximize_gamma(self, sents):
 
         # Rango de valores 'a ojo'.
-        gammas_list = [1.0, 5.0, 10.0, 50.0, 100.0, 200.0, 500.0, 750.0, 1000.0]
+        gammas_list = [1.0, 5.0, 10.0, 50.0, 100.0, 200.0, 500.0, 750.0, 999.0]
         logs_prob_list = []
 
         # Calculo log_prob para cada gamma.
         for gamma in gammas_list:
             self.gamma = gamma
-            logs_prob_list.append(self.log_prob)
+            logs_prob_list.append(self.log_probability(sents))
 
         # Elijo como gamma aquel que maximiza la log_prob.
         self.gamma = gammas_list[logs_prob_list.index(max(logs_prob_list))]
@@ -401,16 +402,18 @@ class InterpolatedNGram(Ngram):
         # Lambda_i = (1 - sum (Lamda_j)) * C(Xi...Xn-1)/C(Xi...Xn-1) + Gamma.
         lambdas = [1]  # Lista de valores. Lambda_0 es 1.
         for i in range(1, n + 1):
-            lambdas[i] = lambdas[0]
+            lambda_i = lambdas[0]
             for j in range (1, i):  # Incluye el valor (i-1).
                 # Sumatoria de lambdas_j.
-                lambdas[i] -= lambdas[j]
+                lambda_i -= lambdas[j]
             # Factor comun para cada lambda_i entre 1 y n-1.
             if i < n:
                 numerator_i = self.count(ngram[i - 1: -1])  # Sin X1...Xi-1 ni Xn.
                 denominator_i = float(numerator_i + self.gamma)
 
-                lambdas[i] *= numerator_i / denominator_i
+                lambda_i *= numerator_i / denominator_i
+            # Agrego a la lista el nuevo valor calculado.
+            lambdas.append(lambda_i)
         
         return lambdas
 
@@ -421,13 +424,14 @@ class InterpolatedNGram(Ngram):
         ngram -- (prev_tokens + token) tuple.
         """
         add_one = self.addone  # Si addone es True suma 1. Caso contrario, 0.
-        add_v = self.addone * self.V()  # Para addone suma V, c/contrario 0.
+        add_v = self.addone * self.v  # Para addone suma V, c/contrario 0.
 
-        for i in range(1, n + 1):
+        q_mls = [0]  # Para anular en la suma el valor de lambda_0.
+        for i in range(1, self.n + 1):
             numerator_i = self.count(ngram[i - 1:])
             denominator_i = float(self.count(ngram[i - 1: -1]))
 
-            q_mls[i] = numerator_i + add_one / denominator_i + add_v
+            q_mls.append((numerator_i + add_one) / (denominator_i + add_v))
 
         return q_mls
 
@@ -447,14 +451,16 @@ class InterpolatedNGram(Ngram):
         assert len(prev_tokens) == n - 1
         prev_tokens = tuple(prev_tokens)
         ngram = prev_tokens + token
-        # Calculo los valores de los n lambdas y qMLs.
-        lambdas_list = self.lambdas_list(ngram)
-        q_mls_list = self.q_mls_list(ngram)
 
-        assert len(lambdas_list) == len(q_mls_list)
         try:
+            # Calculo los valores de los n lambdas y qMLs.
+            lambdas_list = self.lambdas_list(ngram)
+            q_mls_list = self.q_mls_list(ngram)
+
             # Probabilidad condicional para Interpolacion.
-            cond_prob = sum[a * b for a, b in zip(lambdas_list, q_mls_list)]
+            assert len(lambdas_list) == len(q_mls_list)
+            cond_prob = sum([a * b for a, b in zip(lambdas_list, q_mls_list)])
+
         except ZeroDivisionError:
             cond_prob = 0
 
