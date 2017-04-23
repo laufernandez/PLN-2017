@@ -45,6 +45,8 @@ class NGram(object):
 
         tokens -- the n-gram or (n-1)-gram tuple.
         """
+        #Chequeo n-uplas o (n-1)-uplas.
+        assert len(tokens) in [n, n - 1]
         n = self.n
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
@@ -149,7 +151,7 @@ class NGram(object):
         # distribucion de palabras en un corpus dado se puede aproximar
         # como la (-)log_prob de una secuencia larga normalizada por
         # el total de palabras del corpus.
-        c_entropy = float(-1 / self.m) * log_prob
+        c_entropy = float(-1)/ self.m * log_prob
 
         return c_entropy
 
@@ -341,9 +343,8 @@ class InterpolatedNGram(NGram):
         for sent in sents:
             self._delimiters(sent, n)
 
-        # Held-out data.
+        # Held-out data para calcular el valor de gamma optimo.
         if not self.gamma:
-
             # Sumo 1 a index para el caso en que len(sents) < 10.
             held_out_index = int(floor(len(sents) * 10 / 100) + 1)
             held_out_data = sents[-held_out_index:]  # Las ultimas 10% sents.
@@ -358,11 +359,7 @@ class InterpolatedNGram(NGram):
                             _vocabulary.add(token)
             self.v = len(_vocabulary)
 
-        # Calculo gammas o los obtengo de los parametros.
-        if not self.gamma:
-            self.gamma = self.maximize_gamma(held_out_data)
-
-        # Incializo los counts.
+        # Incializo los counts. (Si no hay gamma las sentencias son held_out).
         for sent in sents:
             # Creo el diccionario de frecuencias para
             # ([n],[(n-1)],...,[(n-i)],...,[1])-gramas.
@@ -372,25 +369,38 @@ class InterpolatedNGram(NGram):
                 for j in range(n + 1):
                     counts[ngram[:n - j]] += 1
 
-            if self.n > 1:  # Para el caso n > 1 agrego los delimitadores END.
+            # Para el caso n > 1 agrego los counts de los delimitadores de fin.
+            if self.n > 1:
                 counts[tuple([END,])] += 1
 
-        print (counts)
+        # Calculo el gamma optimo si no viene como argumento.
+        if not self.gamma:
+            self.maximize_gamma(held_out_data)
+
+    def count(self, tokens):
+        """Count for an n-gram or (n-1)-gram.
+
+        tokens -- the n-gram,(n-1)-gram,...,1-gram tuple. (() Included).
+        """
+        # Redefino la funcion count para evitar borrar el assert de la clase
+        # NGram que controla tuplas de longitudes exclusivas n y (n-1).
+        assert len(tokens) in range(self.n + 1)
+        return self.counts[tokens]
 
     def maximize_gamma(self, sents):
 
         # Rango de valores 'a ojo'.
-        gammas_list = [1.0, 5.0, 10.0, 50.0, 100.0, 200.0, 500.0, 750.0, 999.0]
+        gammas_list = [1.0, 500.0, 1000.0, 2000.0, 3500.0, 5000.0, 7500.0, 9000.0, 10.000]
         logs_prob_list = []
 
         # Calculo log_prob para cada gamma.
         for gamma in gammas_list:
             self.gamma = gamma
+            # Cada nuevo gamma influye de manera directa en la log_probability.
             logs_prob_list.append(self.log_probability(sents))
 
-        # Elijo como gamma aquel que maximiza la log_prob.
+        # Elijo como gamma aquel que la maximice.
         self.gamma = gammas_list[logs_prob_list.index(max(logs_prob_list))]
-
 
     def lambdas_list(self, ngram):
         """Lambda values for an ngram.
@@ -399,7 +409,7 @@ class InterpolatedNGram(NGram):
         """
         n = self.n
         # Formula teorica para calcular lambdas:
-        # Lambda_i = (1 - sum (Lamda_j)) * C(Xi...Xn-1)/C(Xi...Xn-1) + Gamma.
+        # Lambda_i = (1 - sum (Lamda_j)) * C(Xi...Xn-1)/(C(Xi...Xn-1) + Gamma).
         lambdas = [1]  # Lista de valores. Lambda_0 es 1.
         for i in range(1, n + 1):
             lambda_i = lambdas[0]
@@ -408,13 +418,13 @@ class InterpolatedNGram(NGram):
                 lambda_i -= lambdas[j]
             # Factor comun para cada lambda_i entre 1 y n-1.
             if i < n:
-                numerator_i = self.count(ngram[i - 1: -1])  # Sin X1...Xi-1 ni Xn.
+                numerator_i = self.count(ngram[i - 1: -1])  # Xi,...,Xn-1.
                 denominator_i = float(numerator_i + self.gamma)
 
-                lambda_i *= numerator_i / denominator_i
+                lambda_i *= numerator_i / denominator_i  # Termino que a
             # Agrego a la lista el nuevo valor calculado.
             lambdas.append(lambda_i)
-        
+
         return lambdas
 
 
@@ -423,8 +433,8 @@ class InterpolatedNGram(NGram):
 
         ngram -- (prev_tokens + token) tuple.
         """
-        add_one = self.addone  # Si addone es True suma 1. Caso contrario, 0.
-        add_v = self.addone * self.v  # Para addone suma V, c/contrario 0.
+        add_one = self.addone  # and (len(ngram)==1)  # Si addone es True suma 1. Caso contrario, 0.
+        add_v = add_one * self.v  # Para addone suma V, c/contrario 0.
 
         q_mls = [0]  # Para anular en la suma el valor de lambda_0.
         for i in range(1, self.n + 1):

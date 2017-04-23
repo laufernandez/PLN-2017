@@ -10,6 +10,7 @@ Options:
   -m <model>    Model to use [default: ngram]:
                   ngram: Unsmoothed n-grams.
                   addone: N-grams with add-one smoothing.
+                  interpolated: N-grams with linear interpolation smoothing.
   -o <file>     Output model file.
   -c <corpus>   Corpus to use [default: politicosargentinos]:
                   politicosargentinos: Argentine Politicians Tweets.
@@ -19,7 +20,7 @@ Options:
 
 from docopt import docopt
 import pickle
-from languagemodeling.ngram import NGram, AddOneNGram
+from languagemodeling.ngram import NGram, AddOneNGram, InterpolatedNGram
 # Importo mi corpus reader personalizado.
 from corpus.twitter_corpus_reader import TwitterCorpusReader
 
@@ -47,6 +48,9 @@ if __name__ == '__main__':
     elif m == 'ngram':
         print('Training an N{}-gram Model'.format(n))
         model = NGram(n, sents)
+    elif m == 'interpolated':
+        print('Training an InterpolatedN{}-gram Model'.format(n))
+        model = InterpolatedNGram(n, sents)
     else:
         __doc__
 
