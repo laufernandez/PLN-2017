@@ -46,7 +46,7 @@ class NGram(object):
         tokens -- the n-gram or (n-1)-gram tuple.
         """
         n = self.n
-        #Chequeo n-uplas o (n-1)-uplas.
+        # Chequeo n-uplas o (n-1)-uplas.
         assert len(tokens) in [n, n - 1]
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
@@ -76,10 +76,10 @@ class NGram(object):
     def calculate_cond_prob(self, token, prev_tokens):
         """Auxiliar function to calculate conditional probabilities and to
         maximize code reusability.
+        Theoretical base: Ngram Model.
 
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
-
         """
         # Tupla que forma el n-grama.
         ngram = prev_tokens + token
@@ -167,7 +167,7 @@ class NGram(object):
         # distribucion de palabras en un corpus dado se puede aproximar
         # como la (-)log_prob de una secuencia larga normalizada por
         # el total de palabras del corpus.
-        c_entropy = float(-1)/ self.m * log_prob
+        c_entropy = float(-1) / self.m * log_prob
 
         return c_entropy
 
@@ -285,10 +285,10 @@ class AddOneNGram(NGram):
     def calculate_cond_prob(self, token, prev_tokens):
         """Auxiliar function to calculate conditional probabilities and to
         maximize code reusability.
+        Theoretical base: Add-One Smoothing.
 
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
-
         """
         # Redefino la funcion auxiliar que calcula la probabilidad condicional.
         ngram = prev_tokens + token
@@ -302,7 +302,7 @@ class AddOneNGram(NGram):
 
 
 class InterpolatedNGram(NGram):
- 
+
     def __init__(self, n, sents, gamma=None, addone=True):
         """
         n -- order of the model.
@@ -350,7 +350,7 @@ class InterpolatedNGram(NGram):
 
             # Para el caso n > 1 agrego los counts de los delimitadores de fin.
             if self.n > 1:
-                counts[tuple([END,])] += 1
+                counts[tuple([END, ])] += 1
 
         # Calculo el gamma optimo si no viene como argumento.
         if not self.gamma:
@@ -368,8 +368,15 @@ class InterpolatedNGram(NGram):
 
     def maximize_gamma(self, sents):
 
-        # Rango de valores 'a ojo'.
-        gammas_list = [0.0, 1.0, 500.0, 1000.0, 2000.0, 3500.0, 5000.0, 7500.0, 9000.0, 10.000]
+        # Rango de valores 'hardcodeados a ojo'.
+        # Se podria definir una funcion que incremente de manera variable los
+        # valores de gamma, aumentando el delta de incremento hasta encontrar
+        # 'picos' que indiquen que la funcion deja de crecer. Luego moverse en
+        # dichos intervalos siguiendo la idea de busqueda binaria hasta hallar
+        # un valor maximo.
+        # A fines practicos se hardcodean los valores en base a los resultados
+        # de las pruebas a mano con distintos valores para los corpus usados.
+        gammas_list = [0, 1, 9, 200, 500, 1000, 2000, 5000, 7500, 9000, 10.000]
         logs_prob_list = []
 
         # Calculo log_prob para cada gamma.
@@ -392,7 +399,7 @@ class InterpolatedNGram(NGram):
         lambdas = [1]  # Lista de valores. Lambda_0 es 1.
         for i in range(1, n + 1):
             lambda_i = lambdas[0]
-            for j in range (1, i):  # Incluye el valor (i-1).
+            for j in range(1, i):  # Incluye el valor (i-1).
                 # Sumatoria de lambdas_j.
                 lambda_i -= lambdas[j]
             # Factor comun para cada lambda_i entre 1 y n-1.
@@ -405,7 +412,6 @@ class InterpolatedNGram(NGram):
             lambdas.append(lambda_i)
 
         return lambdas
-
 
     def q_mls_list(self, ngram):
         """Maximum-likelihood values for an ngram.
@@ -427,10 +433,10 @@ class InterpolatedNGram(NGram):
     def calculate_cond_prob(self, token, prev_tokens):
         """Auxiliar function to calculate conditional probabilities and to
         maximize code reusability.
+        Theoretical base: Interpolation Smoothing.
 
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
-
         """
         ngram = prev_tokens + token  # Genero ngrama y aplico interpolacion.
         try:
