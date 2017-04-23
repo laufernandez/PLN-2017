@@ -17,7 +17,7 @@ class NGram(object):
         assert n > 0
         self.n = n
         self.counts = counts = defaultdict(int)
-        self.v = 0  # Tamano del vocabulario.
+        self.v = 0  # Longitud del vocabulario.
 
         # Set de wordtypes (incluye </s>).
         _vocabulary = set()
@@ -136,6 +136,7 @@ class NGram(object):
         sents -- abstraction of a 'long sentence' formed by the sents in the
         test data corpus.
         """
+        print(self.gamma)
         # Obtengo la perplexity a partir de su cross_entropy
         perplexity = pow(2, self.cross_entropy(sents))
 
@@ -173,7 +174,7 @@ class NGram(object):
                 self.m += 1
                 long_sent.append(word)
         # Calculo la log_prob de la secuencia larga.
-        log_prob += self.sent_log_prob(long_sent)
+        log_prob = self.sent_log_prob(long_sent)
 
         return log_prob
 
@@ -390,7 +391,7 @@ class InterpolatedNGram(NGram):
     def maximize_gamma(self, sents):
 
         # Rango de valores 'a ojo'.
-        gammas_list = [1.0, 500.0, 1000.0, 2000.0, 3500.0, 5000.0, 7500.0, 9000.0, 10.000]
+        gammas_list = [0.0, 1.0, 500.0, 1000.0, 2000.0, 3500.0, 5000.0, 7500.0, 9000.0, 10.000]
         logs_prob_list = []
 
         # Calculo log_prob para cada gamma.
@@ -421,7 +422,7 @@ class InterpolatedNGram(NGram):
                 numerator_i = self.count(ngram[i - 1: -1])  # Xi,...,Xn-1.
                 denominator_i = float(numerator_i + self.gamma)
 
-                lambda_i *= numerator_i / denominator_i  # Termino que a
+                lambda_i *= numerator_i / denominator_i
             # Agrego a la lista el nuevo valor calculado.
             lambdas.append(lambda_i)
 
@@ -433,13 +434,13 @@ class InterpolatedNGram(NGram):
 
         ngram -- (prev_tokens + token) tuple.
         """
-        add_one = self.addone  # and (len(ngram)==1)  # Si addone es True suma 1. Caso contrario, 0.
-        add_v = add_one * self.v  # Para addone suma V, c/contrario 0.
-
-        q_mls = [0]  # Para anular en la suma el valor de lambda_0.
+        q_mls = [0]  # Para anular en la sumatoria (***) el valor de lambda_0.
         for i in range(1, self.n + 1):
-            numerator_i = self.count(ngram[i - 1:])
-            denominator_i = float(self.count(ngram[i - 1: -1]))
+            # Addone para el nivel mas bajo. (Unigramas).
+            add_one = self.addone and len(ngram[i - 1:])  # Suma 0 solo si and.
+            add_v = add_one * self.v  # Si add_one es 1 suma V, c/contrario 0.
+            numerator_i = self.count(ngram[i - 1:])  # Xi,...,Xn-1,Xn.
+            denominator_i = float(self.count(ngram[i - 1: -1]))  # Xi,...,Xn-1.
 
             q_mls.append((numerator_i + add_one) / (denominator_i + add_v))
 
@@ -469,6 +470,7 @@ class InterpolatedNGram(NGram):
 
             # Probabilidad condicional para Interpolacion.
             assert len(lambdas_list) == len(q_mls_list)
+            # Sumatoria (***) de lambas_i y qML para cada cond_prob.
             cond_prob = sum([a * b for a, b in zip(lambdas_list, q_mls_list)])
 
         except ZeroDivisionError:
