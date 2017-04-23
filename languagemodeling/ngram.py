@@ -45,9 +45,9 @@ class NGram(object):
 
         tokens -- the n-gram or (n-1)-gram tuple.
         """
+        n = self.n
         #Chequeo n-uplas o (n-1)-uplas.
         assert len(tokens) in [n, n - 1]
-        n = self.n
         # Frecuencia asociada a la tupla que pasa como argumento.
         return self.counts[tokens]
 
@@ -65,6 +65,22 @@ class NGram(object):
             prev_tokens = []
         assert len(prev_tokens) == n - 1
         prev_tokens = tuple(prev_tokens)
+        cond_prob = self.calculate_cond_prob(token, prev_tokens)
+
+        # Todas las clases comparten el mismo codigo para la funcion cond_prob.
+        # Basta con redefinir la funcion auxiliar basandose en como calcula
+        # cada modelo las probabilidades condicionales entre dos eventos.
+
+        return cond_prob
+
+    def calculate_cond_prob(self, token, prev_tokens):
+        """Auxiliar function to calculate conditional probabilities and to
+        maximize code reusability.
+
+        token -- the token.
+        prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+
+        """
         # Tupla que forma el n-grama.
         ngram = prev_tokens + token
         # Probabilidades y regla de la probabilidad condicional.
@@ -136,7 +152,6 @@ class NGram(object):
         sents -- abstraction of a 'long sentence' formed by the sents in the
         test data corpus.
         """
-        print(self.gamma)
         # Obtengo la perplexity a partir de su cross_entropy
         perplexity = pow(2, self.cross_entropy(sents))
 
@@ -262,61 +277,24 @@ class NGramGenerator(object):
 
 class AddOneNGram(NGram):
 
-    def __init__(self, n, sents):
-        """
-        n -- order of the model.
-        sents -- list of sentences, each one being a list of tokens.
-        """
-        assert n > 0
-        self.n = n
-        self.counts = counts = defaultdict(int)
-        self.v = 0  # Tamano del vocabulario.
-
-        # Set de wordtypes (incluye </s>).
-        _vocabulary = set()
-
-        for sent in sents:
-            # Delimitadores de inicio y fin de sentencia.
-            self._delimiters(sent, n)
-            # Creo el diccionario de n-gramas y (n-1)-gramas y sus frecuencias.
-            for i in range(len(sent) - n + 1):
-                ngram = tuple(sent[i: i + n])
-                # Agrego los wordtypes al set.
-                for token in ngram:
-                    if token != BEGIN:
-                        _vocabulary.add(token)
-                # Incremento la frecuencia del n-grama.
-                counts[ngram] += 1
-                # Incrementa frecuencia del (n-1)-grama.
-                counts[ngram[:-1]] += 1
-
-        # Necesario para el ejercicio de suavizado Add-One.
-        self.v = len(_vocabulary)  # Cantidad de wordtypes.
-
     def V(self):
         """Size of the vocabulary.
         """
         return self.v
 
-    # Redefino la funcion que calcula las probabilidades condicionales.
-    def cond_prob(self, token, prev_tokens=None):
-        """Conditional probability of a token.
+    def calculate_cond_prob(self, token, prev_tokens):
+        """Auxiliar function to calculate conditional probabilities and to
+        maximize code reusability.
 
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+
         """
-        n = self.n
-        v = self.V()
-        token = tuple([token])
-        if not prev_tokens:
-            assert n == 1
-            prev_tokens = []
-        assert len(prev_tokens) == n - 1
-        prev_tokens = tuple(prev_tokens)
+        # Redefino la funcion auxiliar que calcula la probabilidad condicional.
         ngram = prev_tokens + token
         # Suavizado Add-One.
         ngram_prob = float(self.count(ngram) + 1)
-        prev_tokens_prob = float(self.count(prev_tokens) + v)
+        prev_tokens_prob = float(self.count(prev_tokens) + self.V())
         # No hay ZeroDivisionError
         conditional_prob = ngram_prob / prev_tokens_prob
 
@@ -446,23 +424,15 @@ class InterpolatedNGram(NGram):
 
         return q_mls
 
-    def cond_prob(self, token, prev_tokens=None):
-        """Conditional probability of a token.
+    def calculate_cond_prob(self, token, prev_tokens):
+        """Auxiliar function to calculate conditional probabilities and to
+        maximize code reusability.
 
         token -- the token.
         prev_tokens -- the previous n-1 tokens (optional only if n = 1).
+
         """
-        n = self.n
-        token = tuple([token])
-
-        if not prev_tokens:
-            assert n == 1
-            prev_tokens = []
-
-        assert len(prev_tokens) == n - 1
-        prev_tokens = tuple(prev_tokens)
-        ngram = prev_tokens + token
-
+        ngram = prev_tokens + token  # Genero ngrama y aplico interpolacion.
         try:
             # Calculo los valores de los n lambdas y qMLs.
             lambdas_list = self.lambdas_list(ngram)
